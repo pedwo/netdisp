@@ -216,22 +216,13 @@ void NetDisp::layoutWindow()
 	for (int i = 0; i < NR_PORTS; i++)
 		newPortStates[i] = portStates[i];
 
-	/* Renesas logo */
-	QPushButton *renesasLogo = new QPushButton();
-	renesasLogo->setFixedSize(240, 38);
-	renesasLogo->setIcon(QIcon("Renesas_blue.png"));
-	renesasLogo->setIconSize(QSize(renesasLogo->width(), renesasLogo->height()));
-
-	/* RZN1 logo */
+	/* RZ logo */
 	QPushButton *rzn1Logo = new QPushButton();
 	rzn1Logo->setFixedSize(216, 77);
 	rzn1Logo->setIcon(QIcon("Renesas-RZ.png"));
 	rzn1Logo->setIconSize(QSize(rzn1Logo->width(), rzn1Logo->height()));
 
 	QBoxLayout *logoLayout = new QVBoxLayout;
-	logoLayout->addWidget(renesasLogo);
-	logoLayout->setAlignment(renesasLogo, Qt::AlignCenter);
-	logoLayout->addSpacing(20);
 	logoLayout->addWidget(rzn1Logo);
 	logoLayout->setAlignment(rzn1Logo, Qt::AlignCenter);
 	logoLayout->addStretch();
