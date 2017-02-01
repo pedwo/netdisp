@@ -163,6 +163,7 @@ QBoxLayout *NetDisp::createRzn1Port(int i)
 	m_portDials.append(dial);
 	layout->addWidget(dial);
 	layout->setAlignment(dial, Qt::AlignCenter);
+	layout->addSpacing(10);
 
 	QPushButton *btn = new QPushButton();
 	btn->setFixedSize(120, 120);
