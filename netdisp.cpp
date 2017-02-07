@@ -141,7 +141,6 @@ QBoxLayout *NetDisp::createPerfDial(const QString & text)
 	QLabel *label = new QLabel(text);
 	label->setFixedSize(140, 40);
 	label->setAlignment(Qt::AlignCenter);
-	label->setStyleSheet("font-size: 42pt; color: black;");
 	layout->addWidget(label);
 
 	return layout;
@@ -179,7 +178,6 @@ QBoxLayout *NetDisp::createRzn1Port(int i, const QString & text)
 
 	QLabel *label = new QLabel(text);
 	label->setAlignment(Qt::AlignCenter);
-	label->setStyleSheet("font-size: 42pt; color: black;");
 	layout->addWidget(label);
 	m_portLabels.append(label);
 

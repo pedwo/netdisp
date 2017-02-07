@@ -39,11 +39,12 @@ int main(int argc, char *argv[])
 			"border-width: 0px;"
 			"border-radius: 0px;"
 		"}"
+		"QLabel {"
+			"color: black;"
+			"font-size: 42pt;"
+		"}"
 		"QMainWindow {"
 			"background-color: lightGray;"
-		"}";
-		"QDial {"
-			"background-color: white;"
 		"}";
 
 	a.setStyleSheet(style);
