@@ -52,6 +52,18 @@ void NetDisp::updatePortDisplay()
 		portStates[i] = newPortStates[i];
 		QPushButton *button = m_portBtns.at(i);
 		button->setIcon(*m_ethIcon[portStates[i]]);
+
+		/* Update the port speed label */
+		QLabel *label = m_portLabels.at(i);
+		if (portStates[i] == ACTIVE) {
+			QString s = QString::number(portSpeed[i]);
+			s.append(" Mbps");
+			label->setText(s);
+		} else {
+			QString s = QString("No link");
+			label->setText(s);
+		}
+
 		refresh = 1;
 	}
 
@@ -131,7 +143,7 @@ QBoxLayout *NetDisp::createPerfDial(const QString & text)
 	label->setAlignment(Qt::AlignCenter);
 	label->setStyleSheet("font-size: 42pt; color: black;");
 	layout->addWidget(label);
-	
+
 	return layout;
 }
 
@@ -150,7 +162,7 @@ QBoxLayout *NetDisp::createRzn1PerfDials()
 	return layout;
 }
 
-QBoxLayout *NetDisp::createRzn1Port(int i)
+QBoxLayout *NetDisp::createRzn1Port(int i, const QString & text)
 {
 	QBoxLayout *layout = new QVBoxLayout;
 
@@ -164,6 +176,12 @@ QBoxLayout *NetDisp::createRzn1Port(int i)
 	layout->addWidget(dial);
 	layout->setAlignment(dial, Qt::AlignCenter);
 	layout->addSpacing(10);
+
+	QLabel *label = new QLabel(text);
+	label->setAlignment(Qt::AlignCenter);
+	label->setStyleSheet("font-size: 42pt; color: black;");
+	layout->addWidget(label);
+	m_portLabels.append(label);
 
 	QPushButton *btn = new QPushButton();
 	btn->setFixedSize(120, 120);
@@ -187,13 +205,13 @@ QBoxLayout *NetDisp::createRzn1Ports()
 	m_ethIcon[ACTIVE]   = new QIcon("port-active.png");
 
 	layout->addStretch();
-	layout->addLayout(createRzn1Port(0));
+	layout->addLayout(createRzn1Port(0, "Mgmt 1Gpbs"));
 	/* Add a spacer after Port 1 as this is the Management Port */
 	layout->addSpacing(40);
 
 	for (int i = 1; i < NR_PORTS; i++) {
 		layout->addSpacing(20);
-		layout->addLayout(createRzn1Port(i));
+		layout->addLayout(createRzn1Port(i, ""));
 	}
 	layout->addStretch();
 
@@ -211,10 +229,17 @@ void NetDisp::layoutWindow()
 	portStates[0] = ACTIVE;		/* Management port */
 	portStates[1] = INACTIVE;
 	portStates[2] = INACTIVE;
-	portStates[3] = UNUSED;
+	portStates[3] = INACTIVE;
 	portStates[4] = UNUSED;
 	for (int i = 0; i < NR_PORTS; i++)
 		newPortStates[i] = portStates[i];
+
+	portSpeed[0] = 1000;		/* Management port */
+	/* TODO dummy data for port speed */
+	portSpeed[1] = 100;
+	portSpeed[2] = 100;
+	portSpeed[3] = 1000;
+	portSpeed[4] = 10;
 
 	/* RZ logo */
 	QPushButton *rzn1Logo = new QPushButton();

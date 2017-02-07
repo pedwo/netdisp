@@ -30,6 +30,7 @@
 #include <qdial.h>
 #include <qicon.h>
 #include <qlist.h>
+#include <qlabel.h>
 #include <qsignalmapper.h>
 #include <qtimer.h>
 
@@ -58,17 +59,19 @@ public slots:
 private:
 	QBoxLayout *createPerfDial(const QString & text);
 	QBoxLayout *createRzn1PerfDials();
-	QBoxLayout *createRzn1Port(int i);
+	QBoxLayout *createRzn1Port(int i, const QString & text);
 	QBoxLayout *createRzn1Ports();
 	void layoutWindow();
 
 	QIcon *m_ethIcon[NR_PORT_STATES];
 	int portStates[NR_PORTS];
 	int newPortStates[NR_PORTS];
+	int portSpeed[NR_PORTS];
 	QSignalMapper *m_signalMap;
 	QList<QPushButton *> m_portBtns;
 	QList<QDial *> m_cpuDials;
 	QList<QDial *> m_portDials;
+	QList<QLabel *> m_portLabels;
 	QTimer *m_perfTimer;
 	QTimer *m_portTimer;
 };
