@@ -19,6 +19,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "netdisp.h"
 #include <qboxlayout.h>
@@ -28,6 +32,10 @@
 #include <qevent.h>
 #include <qdebug.h>
 #include <cpu_idle.h>
+
+static int fifofd;
+static char *fifofile = "/tmp/switchport-status";
+static char fifobuf[1024];
 
 /* independent timers to update the performance dials and port status */
 #define PERF_UPDATE_MS	100
@@ -87,19 +95,53 @@ void NetDisp::onPortPressed(int port)
 	updatePortDisplay();
 }
 
+/* Rather slow way to read until newline... */
+static int readline(int fd, char *buffer, size_t max_len)
+{
+	char c;
+	int nr = 0;
+
+	while (read(fd, &c, 1) > 0) {
+		if (c == '\n')
+			break;
+		buffer[nr++] = c;
+		if (nr == max_len)
+			break;
+	}
+	return nr;
+}
+
 static unsigned char count;
 void NetDisp::updatePortStatus()
 {
-	/* TODO get state of each port */
-	/* Dummy something here */
-	count++;
+	for (;;) {
+		int len;
+		unsigned int port_nr, link_up, speed, rx_load, tx_load;
 
-	for (int i = 1; i < NR_PORTS; i++) {
-		if (count % (i * 10) == 0) {
-			if (newPortStates[i] == INACTIVE)
-				newPortStates[i] = ACTIVE;
-			else if (newPortStates[i] == ACTIVE)
-				newPortStates[i] = INACTIVE;
+		/* Get port data from named pipe */
+		len = readline(fifofd, fifobuf, sizeof(fifobuf));
+		if (len <= 0)
+			break;
+
+		sscanf(fifobuf, "port %u, link %u, speed %u, tx %u, rx %u\n", &port_nr, &link_up, &speed, &tx_load, &rx_load);
+
+		/* Switch port 4 is actually the management port... */
+		port_nr = (port_nr + 1) % NR_PORTS;
+		if (link_up) {
+			printf("netdisp port %u, link %u, speed %u, tx %u, rx %u\n",
+					port_nr, link_up, speed, tx_load, rx_load);
+		}
+
+		if (link_up) {
+			unsigned int max_bytes_per_sec = speed * 1000 * 1000 / 8;
+			unsigned int percent_load = (100 * (tx_load + rx_load)) / max_bytes_per_sec;
+			newPortStates[port_nr] = ACTIVE;
+			portSpeed[port_nr] = speed;
+			m_portDials.at(port_nr)->setValue(percent_load);
+			printf("netdisp port %u, load %u\n", port_nr, percent_load);
+		} else {
+			newPortStates[port_nr] = INACTIVE;
+			m_portDials.at(port_nr)->setValue(0);
 		}
 	}
 
@@ -209,7 +251,7 @@ QBoxLayout *NetDisp::createRzn1Ports()
 
 	for (int i = 1; i < NR_PORTS; i++) {
 		layout->addSpacing(20);
-		layout->addLayout(createRzn1Port(i, ""));
+		layout->addLayout(createRzn1Port(i, "No link"));
 	}
 	layout->addStretch();
 
@@ -222,13 +264,16 @@ void NetDisp::layoutWindow()
 	m_signalMap = new QSignalMapper(this);
 	connect(m_signalMap, SIGNAL(mapped(int)), SLOT(onPortPressed(int)));
 
+	/* Open named pipe to get the port data */
+	fifofd = open(fifofile, O_RDONLY | O_NONBLOCK);
+
 	/* Set up port status */
 	/* TODO We use hardcoded unused ports due to pinmux */
 	portStates[0] = ACTIVE;		/* Management port */
 	portStates[1] = INACTIVE;
 	portStates[2] = INACTIVE;
 	portStates[3] = INACTIVE;
-	portStates[4] = UNUSED;
+	portStates[4] = INACTIVE;
 	for (int i = 0; i < NR_PORTS; i++)
 		newPortStates[i] = portStates[i];
 
