@@ -129,8 +129,9 @@ void NetDisp::updatePortStatus()
 
 		sscanf(fifobuf, "port %u, link %u, speed %u, tx %u, rx %u\n", &port_nr, &link_up, &speed, &tx_load, &rx_load);
 
-		/* Switch port 4 is actually the management port... */
-		port_nr = (port_nr + 1) % NR_PORTS;
+		/* Reverse order of the port to match the board. This is handy
+		 * as switch port 4 is actually the management port... */
+		port_nr = NR_PORTS - 1 - port_nr;
 		if (link_up) {
 			printf("netdisp port %u, link %u, speed %u, tx %u, rx %u\n",
 					port_nr, link_up, speed, tx_load, rx_load);
