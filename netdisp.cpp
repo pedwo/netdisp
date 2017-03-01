@@ -135,7 +135,11 @@ void NetDisp::updatePortStatus()
 
 		if (link_up) {
 			unsigned int max_bytes_per_sec = speed * 1000 * 1000 / 8;
-			unsigned int percent_load = (100 * (tx_load + rx_load)) / max_bytes_per_sec;
+			unsigned int percent_load;
+
+			if (speed == 1000)
+				max_bytes_per_sec = 300 * 1000 * 1000 / 8;
+			percent_load = (100 * (tx_load + rx_load)) / max_bytes_per_sec;
 			newPortStates[port_nr] = ACTIVE;
 			portSpeed[port_nr] = speed;
 			m_portDials.at(port_nr)->setValue(percent_load);
