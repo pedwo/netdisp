@@ -102,9 +102,9 @@ static int readline(int fd, char *buffer, size_t max_len)
 	int nr = 0;
 
 	while (read(fd, &c, 1) > 0) {
+		buffer[nr++] = c;
 		if (c == '\n')
 			break;
-		buffer[nr++] = c;
 		if (nr == max_len)
 			break;
 	}
@@ -119,6 +119,7 @@ void NetDisp::updatePortStatus()
 		unsigned int port_nr, link_up, speed, rx_load, tx_load;
 
 		/* Get port data from named pipe */
+		memset(fifobuf, 0, sizeof(fifobuf));
 		len = readline(fifofd, fifobuf, sizeof(fifobuf));
 		if (len <= 0)
 			break;
