@@ -43,6 +43,12 @@ enum port_states {
 	NR_PORT_STATES,
 };
 
+struct port_data {
+	int portState;
+	int newPortState;
+	int portSpeed;
+};
+
 class NetDisp : public QMainWindow
 {
 	Q_OBJECT
@@ -59,14 +65,12 @@ public slots:
 private:
 	QBoxLayout *createPerfDial(const QString & text);
 	QBoxLayout *createRzn1PerfDials();
-	QBoxLayout *createRzn1Port(int i, const QString & text);
+	QBoxLayout *createRzn1Port(int i, const QString & text, int state);
 	QBoxLayout *createRzn1Ports();
 	void layoutWindow();
 
 	QIcon *m_ethIcon[NR_PORT_STATES];
-	int portStates[NR_PORTS];
-	int newPortStates[NR_PORTS];
-	int portSpeed[NR_PORTS];
+	struct port_data portData[NR_PORTS];
 	QSignalMapper *m_signalMap;
 	QList<QPushButton *> m_portBtns;
 	QList<QDial *> m_cpuDials;

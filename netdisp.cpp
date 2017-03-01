@@ -34,7 +34,7 @@
 #include <cpu_idle.h>
 
 static int fifofd;
-static char *fifofile = "/tmp/switchport-status";
+static const char *fifofile = "/tmp/switchport-status";
 static char fifobuf[1024];
 
 /* independent timers to update the performance dials and port status */
@@ -55,16 +55,18 @@ void NetDisp::updatePortDisplay()
 
 	/* Detect changed port status and handle it */
 	for (int i = 0; i < NR_PORTS; i++) {
-		if (portStates[i] == newPortStates[i])
+		struct port_data *prt = &portData[i];
+
+		if (prt->portState == prt->newPortState)
 			continue;
-		portStates[i] = newPortStates[i];
+		prt->portState = prt->newPortState;
 		QPushButton *button = m_portBtns.at(i);
-		button->setIcon(*m_ethIcon[portStates[i]]);
+		button->setIcon(*m_ethIcon[prt->portState]);
 
 		/* Update the port speed label */
 		QLabel *label = m_portLabels.at(i);
-		if (portStates[i] == ACTIVE) {
-			QString s = QString::number(portSpeed[i]);
+		if (prt->portState == ACTIVE) {
+			QString s = QString::number(prt->portSpeed);
 			s.append(" Mbps");
 			label->setText(s);
 		} else {
@@ -87,19 +89,21 @@ void NetDisp::onPortPressed(int port)
 	/* TODO pop up a box with further info when port is pressed? */
 
 	/* For now, enable/disable the port */
-	if (newPortStates[port] == UNUSED)
-		newPortStates[port] = INACTIVE;
+	struct port_data *prt = &portData[port];
+
+	if (prt->newPortState == UNUSED)
+		prt->newPortState = INACTIVE;
 	else
-		newPortStates[port] = UNUSED;
+		prt->newPortState = UNUSED;
 
 	updatePortDisplay();
 }
 
 /* Rather slow way to read until newline... */
-static int readline(int fd, char *buffer, size_t max_len)
+static size_t readline(int fd, char *buffer, size_t max_len)
 {
 	char c;
-	int nr = 0;
+	size_t nr = 0;
 
 	while (read(fd, &c, 1) > 0) {
 		buffer[nr++] = c;
@@ -111,7 +115,6 @@ static int readline(int fd, char *buffer, size_t max_len)
 	return nr;
 }
 
-static unsigned char count;
 void NetDisp::updatePortStatus()
 {
 	for (;;) {
@@ -133,19 +136,22 @@ void NetDisp::updatePortStatus()
 					port_nr, link_up, speed, tx_load, rx_load);
 		}
 
+		struct port_data *prt = &portData[port_nr];
+
 		if (link_up) {
 			unsigned int max_bytes_per_sec = speed * 1000 * 1000 / 8;
 			unsigned int percent_load;
 
+			/* 1000Mbps link actual throughput is somewhat lower */
 			if (speed == 1000)
 				max_bytes_per_sec = 300 * 1000 * 1000 / 8;
 			percent_load = (100 * (tx_load + rx_load)) / max_bytes_per_sec;
-			newPortStates[port_nr] = ACTIVE;
-			portSpeed[port_nr] = speed;
+			prt->newPortState = ACTIVE;
+			prt->portSpeed = speed;
 			m_portDials.at(port_nr)->setValue(percent_load);
 			printf("netdisp port %u, load %u\n", port_nr, percent_load);
 		} else {
-			newPortStates[port_nr] = INACTIVE;
+			prt->newPortState = INACTIVE;
 			m_portDials.at(port_nr)->setValue(0);
 		}
 	}
@@ -208,9 +214,14 @@ QBoxLayout *NetDisp::createRzn1PerfDials()
 	return layout;
 }
 
-QBoxLayout *NetDisp::createRzn1Port(int i, const QString & text)
+QBoxLayout *NetDisp::createRzn1Port(int i, const QString & text, int state)
 {
 	QBoxLayout *layout = new QVBoxLayout;
+
+	/* Data for the ports */
+	portData[i].portState = state;
+	portData[i].newPortState = state;
+	portData[i].portSpeed = 1000;
 
 	QDial *dial = new QDial();
 	dial->setFixedSize(110, 110);
@@ -233,7 +244,7 @@ QBoxLayout *NetDisp::createRzn1Port(int i, const QString & text)
 	m_signalMap->setMapping(btn, i);
 	connect(btn, SIGNAL(pressed()), m_signalMap, SLOT(map()));
 	m_portBtns.append(btn);
-	btn->setIcon(*m_ethIcon[portStates[i]]);
+	btn->setIcon(*m_ethIcon[state]);
 	btn->setIconSize(QSize(btn->width(), btn->height()));
 	layout->addWidget(btn);
 
@@ -250,13 +261,13 @@ QBoxLayout *NetDisp::createRzn1Ports()
 	m_ethIcon[ACTIVE]   = new QIcon("port-active.png");
 
 	layout->addStretch();
-	layout->addLayout(createRzn1Port(0, "Mgmt 1Gpbs"));
+	layout->addLayout(createRzn1Port(0, "Mgmt 1Gpbs", ACTIVE));
 	/* Add a spacer after Port 1 as this is the Management Port */
 	layout->addSpacing(40);
 
 	for (int i = 1; i < NR_PORTS; i++) {
 		layout->addSpacing(20);
-		layout->addLayout(createRzn1Port(i, "No link"));
+		layout->addLayout(createRzn1Port(i, "No link", INACTIVE));
 	}
 	layout->addStretch();
 
@@ -271,23 +282,6 @@ void NetDisp::layoutWindow()
 
 	/* Open named pipe to get the port data */
 	fifofd = open(fifofile, O_RDONLY | O_NONBLOCK);
-
-	/* Set up port status */
-	/* TODO We use hardcoded unused ports due to pinmux */
-	portStates[0] = ACTIVE;		/* Management port */
-	portStates[1] = INACTIVE;
-	portStates[2] = INACTIVE;
-	portStates[3] = INACTIVE;
-	portStates[4] = INACTIVE;
-	for (int i = 0; i < NR_PORTS; i++)
-		newPortStates[i] = portStates[i];
-
-	portSpeed[0] = 1000;		/* Management port */
-	/* TODO dummy data for port speed */
-	portSpeed[1] = 100;
-	portSpeed[2] = 100;
-	portSpeed[3] = 1000;
-	portSpeed[4] = 10;
 
 	/* RZ logo */
 	QPushButton *rzn1Logo = new QPushButton();
