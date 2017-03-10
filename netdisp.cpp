@@ -172,10 +172,6 @@ void NetDisp::updatePerfData()
 			load = 95;
 		m_cpuDials.at(i)->setValue(load);
 	}
-
-	/* TODO get Cortex M3 load somehow (dummy for now) */
-	QDial *dial = m_cpuDials.at(2);
-	dial->setValue(3 + rand() % 4);
 }
 
 /* Helper funcs */
@@ -208,8 +204,6 @@ QBoxLayout *NetDisp::createRzn1PerfDials()
 	layout->addLayout(createPerfDial("Cortex A7-1"));
 	layout->addSpacing(20);
 	layout->addLayout(createPerfDial("Cortex A7-2"));
-	layout->addSpacing(20);
-	layout->addLayout(createPerfDial("R-IN Engine (CM3)"));
 	layout->addStretch();
 
 	return layout;
